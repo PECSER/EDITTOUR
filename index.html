@@ -1,0 +1,403 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDITTOUR - Турнирная платформа для эдиторов</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="logo.png">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <!-- Звездный фон -->
+    <div class="stars" id="stars"></div>
+
+    <!-- Уведомления -->
+    <div class="notification" id="notification">
+        <div id="notification-text"></div>
+    </div>
+
+    <!-- Навигация -->
+    <nav>
+        <div class="logo">
+            <img src="logo.png" alt="EDITTOUR" class="logo-image">
+            <span>EDITTOUR</span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="nav-link active" data-page="home">Главная</a>
+            <a href="#" class="nav-link" data-page="profile">Профиль</a>
+            <a href="#" class="nav-link" data-page="tournaments">Турниры</a>
+            <a href="#" class="nav-link" data-page="voting">Голосование</a>
+            <a href="#" class="nav-link" data-page="top">Топ</a>
+            <a href="#" class="nav-link admin-only" data-page="admin" style="display: none;">Админка</a>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="user-coins">
+                <i class="fas fa-coins"></i>
+                <span id="user-coins">0</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main>
+        <!-- Главная страница -->
+        <section id="home" class="page active">
+            <div class="hero">
+                <h1>EDITTOUR</h1>
+                <p>Турнирная платформа для эдиторов TikTok и Reels</p>
+                <p>Покажи свои навыки монтажа, участвуй в турнирах и становись лучшим!</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary" id="demo-login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Демо вход
+                    </button>
+                    <button class="btn btn-accent" id="telegram-login-btn">
+                        <i class="fab fa-telegram"></i> Войти через Telegram
+                    </button>
+                </div>
+                <div class="hero-features">
+                    <div class="feature">
+                        <i class="fas fa-trophy"></i>
+                        <span>Турниры с призами</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-vote-yea"></i>
+                        <span>Честное голосование</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-ranking-star"></i>
+                        <span>Рейтинг игроков</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-level-up-alt"></i>
+                        <span>Система уровней</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Профиль -->
+        <section id="profile" class="page">
+            <div class="profile-header">
+                <div class="profile-main">
+                    <div class="profile-avatar" id="profile-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="profile-info">
+                        <h2 id="profile-username">Гость</h2>
+                        <div class="level-info">
+                            <span>Уровень <strong id="profile-level">1</strong></span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="profile-exp-bar"></div>
+                            </div>
+                            <span id="profile-exp">0/100 XP</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-quick-stats">
+                    <div class="quick-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="quick-coins">0</div>
+                            <div class="stat-label">Коины</div>
+                        </div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="quick-wins">0</div>
+                            <div class="stat-label">Победы</div>
+                        </div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-medal"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="quick-tournaments">0</div>
+                            <div class="stat-label">Турниры</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-content">
+                <div class="stats-section">
+                    <h3><i class="fas fa-chart-line"></i> Статистика</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-tournaments">0</div>
+                            <div class="stat-label">Турниров сыграно</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-wins">0</div>
+                            <div class="stat-label">Побед</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-best">-</div>
+                            <div class="stat-label">Лучший результат</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-winrate">0%</div>
+                            <div class="stat-label">Винрейт</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="level-system-info">
+                    <h3><i class="fas fa-level-up-alt"></i> Система уровней</h3>
+                    <div class="level-info-card">
+                        <div class="level-benefit">
+                            <i class="fas fa-vote-yea"></i>
+                            <div>
+                                <h4>Голосуйте за эдиты</h4>
+                                <p>Получайте +15 опыта за каждый голос</p>
+                            </div>
+                        </div>
+                        <div class="level-benefit">
+                            <i class="fas fa-coins"></i>
+                            <div>
+                                <h4>Повышайте уровень</h4>
+                                <p>За каждый новый уровень получайте +100 коинов</p>
+                            </div>
+                        </div>
+                        <div class="level-benefit">
+                            <i class="fas fa-trophy"></i>
+                            <div>
+                                <h4>Участвуйте в турнирах</h4>
+                                <p>Побеждайте и получайте дополнительные награды</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Турниры -->
+        <section id="tournaments" class="page">
+            <div class="page-header">
+                <h2><i class="fas fa-trophy"></i> Турниры</h2>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="refresh-tournaments">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tournaments-filters">
+                <button class="tournament-filter active" data-filter="active">Активные</button>
+                <button class="tournament-filter" data-filter="upcoming">Скоро</button>
+                <button class="tournament-filter" data-filter="completed">Завершенные</button>
+                <button class="tournament-filter" data-filter="my">Мои турниры</button>
+            </div>
+
+            <div class="tournaments-grid" id="tournaments-grid">
+                <!-- Турниры будут заполнены через JS -->
+            </div>
+        </section>
+
+        <!-- Голосование -->
+        <section id="voting" class="page">
+            <div class="page-header">
+                <h2><i class="fas fa-vote-yea"></i> Голосование</h2>
+                <div class="voting-stats">
+                    <div class="voting-stat">
+                        <span>Осталось пар:</span>
+                        <strong id="remaining-pairs">0</strong>
+                    </div>
+                    <div class="voting-stat">
+                        <span>Голоса сегодня:</span>
+                        <strong id="votes-today">0/10</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="voting-container">
+                <div class="voting-pair" id="current-pair">
+                    <!-- Текущая пара для голосования -->
+                </div>
+
+                <div class="voting-complete" id="voting-complete" style="display: none;">
+                    <div class="complete-content">
+                        <i class="fas fa-flag-checkered"></i>
+                        <h3>Голосование завершено!</h3>
+                        <p>Вы проголосовали за все доступные пары на сегодня.</p>
+                        <p>Возвращайтесь завтра для новых голосований!</p>
+                        <button class="btn btn-primary" id="go-to-tournaments-btn">
+                            <i class="fas fa-trophy"></i> Участвовать в турнирах
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Топ игроков -->
+        <section id="top" class="page">
+            <div class="page-header">
+                <h2><i class="fas fa-crown"></i> Топ игроков</h2>
+                <div class="header-stats">
+                    <div class="header-stat">
+                        <span>Ваше место:</span>
+                        <strong id="user-rank">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="top-filters">
+                <button class="top-filter active" data-filter="wins">
+                    <i class="fas fa-trophy"></i> По победам
+                </button>
+                <button class="top-filter" data-filter="coins">
+                    <i class="fas fa-coins"></i> По коинам
+                </button>
+                <button class="top-filter" data-filter="level">
+                    <i class="fas fa-level-up-alt"></i> По уровню
+                </button>
+            </div>
+
+            <div class="top-players" id="top-players">
+                <!-- Топ игроков будет заполнен через JS -->
+            </div>
+        </section>
+
+        <!-- Админка -->
+        <section id="admin" class="page">
+            <div class="admin-auth" id="admin-auth">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <i class="fas fa-user-shield"></i>
+                        <h3>Вход в админку</h3>
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль админа</label>
+                        <input type="password" class="form-input" id="admin-password" placeholder="Введите пароль">
+                    </div>
+                    <button class="btn btn-primary" id="admin-login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                </div>
+            </div>
+
+            <div class="admin-panel" id="admin-panel" style="display: none;">
+                <div class="admin-header">
+                    <h2><i class="fas fa-user-shield"></i> Панель администратора</h2>
+                    <button class="btn btn-outline" id="admin-logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
+                </div>
+
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-tab="submissions">
+                        <i class="fas fa-inbox"></i> Заявки
+                    </button>
+                    <button class="admin-tab" data-tab="tournaments">
+                        <i class="fas fa-trophy"></i> Турниры
+                    </button>
+                    <button class="admin-tab" data-tab="users">
+                        <i class="fas fa-users"></i> Пользователи
+                    </button>
+                </div>
+
+                <div class="admin-content active" id="submissions-tab">
+                    <h3>Заявки на проверку</h3>
+                    <div id="admin-submissions">
+                        <!-- Заявки будут заполнены через JS -->
+                    </div>
+                </div>
+
+                <div class="admin-content" id="tournaments-tab">
+                    <h3>Управление турнирами</h3>
+                    <button class="btn btn-primary" id="create-tournament-btn">
+                        <i class="fas fa-plus"></i> Создать турнир
+                    </button>
+                    <div class="admin-tournaments-list" id="admin-tournaments">
+                        <!-- Турниры будут заполнены через JS -->
+                    </div>
+                </div>
+
+                <div class="admin-content" id="users-tab">
+                    <h3>Управление пользователями</h3>
+                    <div id="admin-users">
+                        <!-- Пользователи будут заполнены через JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Модальные окна -->
+    <div class="modal" id="tournament-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="tournament-modal-close">&times;</button>
+            <h3 class="modal-title" id="tournament-modal-title">Название турнира</h3>
+            <div class="tournament-modal-info">
+                <div class="info-section">
+                    <h4>Информация о турнире</h4>
+                    <p id="tournament-modal-description"></p>
+                    <div class="tournament-details">
+                        <div class="detail">
+                            <i class="fas fa-users"></i>
+                            <span>Участников: <strong id="tournament-modal-participants">0</strong></span>
+                        </div>
+                        <div class="detail">
+                            <i class="fas fa-coins"></i>
+                            <span>Призовой фонд: <strong id="tournament-modal-prize">0</strong> коинов</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tournament-bracket-container">
+                    <!-- Турнирная сетка будет добавлена через JS -->
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="edit-link">Ссылка на ваш эдит (TikTok/Reels)</label>
+                <input type="text" class="form-input" id="edit-link" placeholder="https://...">
+            </div>
+            <button class="btn btn-primary" id="submit-edit-btn">
+                <i class="fas fa-paper-plane"></i> Отправить на проверку
+            </button>
+        </div>
+    </div>
+
+    <div class="modal" id="create-tournament-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="create-tournament-modal-close">&times;</button>
+            <h3 class="modal-title">Создание турнира</h3>
+            <div class="form-group">
+                <label class="form-label">Название турнира</label>
+                <input type="text" class="form-input" id="tournament-name" placeholder="Введите название">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Описание</label>
+                <textarea class="form-input" id="tournament-description" placeholder="Описание турнира" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Призовой фонд (коины)</label>
+                <input type="number" class="form-input" id="tournament-prize" placeholder="1000" min="100">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Количество участников</label>
+                <select class="form-input" id="tournament-participants">
+                    <option value="8">8 участников</option>
+                    <option value="16">16 участников</option>
+                    <option value="32">32 участника</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="create-tournament-submit">
+                <i class="fas fa-plus"></i> Создать турнир
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
