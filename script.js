@@ -1,4 +1,4 @@
-﻿// ===== КОНФИГУРАЦИЯ =====
+// ===== КОНФИГУРАЦИЯ =====
 const CONFIG = {
     ADMIN_PASSWORD: 'admin123',
     ADMINS: ['Boss', 'Admin', 'DemoUser'],
@@ -7,7 +7,14 @@ const CONFIG = {
     LEVEL_UP_REWARD: 100, // Коины за уровень
     EXP_PER_LEVEL: 100, // Опыта для уровня
     TELEGRAM_BOT_TOKEN: '8370576423:AAFcuKWE7spALSwvPhIt1Eig3iqd0Botjg8',
-    TELEGRAM_BOT_NAME: 'editour_bot'
+    TELEGRAM_BOT_NAME: 'editour_bot',
+    KING_REWARD: 50, // Ежедневная награда царя
+    DEFAULT_TOURNAMENT_IMAGES: [
+        'https://via.placeholder.com/400x200/8a2be2/ffffff?text=TikTok+Tournament',
+        'https://via.placeholder.com/400x200/00ffcc/000000?text=Edit+Battle',
+        'https://via.placeholder.com/400x200/ff3366/ffffff?text=Video+Contest',
+        'https://via.placeholder.com/400x200/ffcc00/000000?text=Creative+Challenge'
+    ]
 };
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
@@ -19,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUI();
     
     initTelegramAuth();
+    initInfiniteTournament();
 });
 
 // ===== TELEGRAM ИНТЕГРАЦИЯ =====
@@ -53,10 +61,16 @@ function initTelegramAuth() {
                     votesEarned: 0,
                     dailyVotes: 0,
                     lastVoteDate: new Date().toISOString().split('T')[0],
-                    isTelegramUser: true
+                    isTelegramUser: true,
+                    joinDate: new Date().toISOString(),
+                    kingWins: 0,
+                    totalKingTime: 0
                 };
                 localStorage.setItem('editourUsers', JSON.stringify(users));
                 console.log('Создан новый пользователь Telegram:', username);
+                
+                // Добавляем нового пользователя в демо-турниры
+                addNewUserToDemoTournaments(username);
             }
             
             localStorage.setItem('currentUser', username);
@@ -69,11 +83,24 @@ function initTelegramAuth() {
 }
 
 function setupTelegramLogin() {
+    // Проверяем, находимся ли мы уже в Telegram Web App
+    if (window.Telegram && Telegram.WebApp) {
+        showNotification('Вы уже в Telegram!', 'info');
+        return;
+    }
+    
+    // Создаем правильную ссылку для авторизации
     const botName = CONFIG.TELEGRAM_BOT_NAME;
     const authUrl = `https://t.me/${botName}?start=webapp`;
     
-    window.open(authUrl, '_blank');
-    showNotification('Открывается Telegram для авторизации...', 'info');
+    // Пытаемся открыть в том же окне для мобильных устройств
+    try {
+        window.location.href = authUrl;
+    } catch (e) {
+        window.open(authUrl, '_blank');
+    }
+    
+    showNotification('Открывается Telegram...', 'info');
 }
 
 // ===== СИСТЕМА ДАННЫХ =====
@@ -94,7 +121,9 @@ function initData() {
                 totalVotes: 12,
                 votesEarned: 120,
                 dailyVotes: 0,
-                lastVoteDate: new Date().toISOString().split('T')[0]
+                lastVoteDate: new Date().toISOString().split('T')[0],
+                kingWins: 2,
+                totalKingTime: 86400000 // 1 день в миллисекундах
             },
             'Boss': {
                 username: 'Boss',
@@ -107,7 +136,9 @@ function initData() {
                 totalVotes: 89,
                 votesEarned: 890,
                 dailyVotes: 0,
-                lastVoteDate: new Date().toISOString().split('T')[0]
+                lastVoteDate: new Date().toISOString().split('T')[0],
+                kingWins: 5,
+                totalKingTime: 259200000 // 3 дня
             },
             'EditorPro': {
                 username: 'EditorPro',
@@ -118,7 +149,9 @@ function initData() {
                 wins: 8,
                 bestResult: 1,
                 totalVotes: 25,
-                votesEarned: 250
+                votesEarned: 250,
+                kingWins: 1,
+                totalKingTime: 43200000 // 12 часов
             },
             'CutMaster': {
                 username: 'CutMaster',
@@ -129,7 +162,9 @@ function initData() {
                 wins: 4,
                 bestResult: 2,
                 totalVotes: 18,
-                votesEarned: 180
+                votesEarned: 180,
+                kingWins: 0,
+                totalKingTime: 0
             }
         };
         localStorage.setItem('editourUsers', JSON.stringify(demoUsers));
@@ -173,7 +208,8 @@ function initData() {
                         }
                     }
                 ],
-                currentRound: 1
+                currentRound: 1,
+                image: CONFIG.DEFAULT_TOURNAMENT_IMAGES[0]
             },
             {
                 id: 2,
@@ -186,7 +222,8 @@ function initData() {
                 created: new Date().toISOString(),
                 startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
                 bracket: [],
-                currentRound: 1
+                currentRound: 1,
+                image: CONFIG.DEFAULT_TOURNAMENT_IMAGES[1]
             },
             {
                 id: 3,
@@ -211,7 +248,8 @@ function initData() {
                         }
                     }
                 ],
-                currentRound: 1
+                currentRound: 1,
+                image: CONFIG.DEFAULT_TOURNAMENT_IMAGES[2]
             }
         ];
         localStorage.setItem('editourTournaments', JSON.stringify(tournaments));
@@ -293,8 +331,42 @@ function initData() {
         console.log('Система голосов инициализирована');
     }
 
+    if (!localStorage.getItem('editourKing')) {
+        const kingData = {
+            currentKing: 'Boss',
+            kingSince: new Date(Date.now() - 86400000).toISOString(), // 1 день назад
+            defenseCount: 3,
+            totalReigns: 5,
+            challenges: []
+        };
+        localStorage.setItem('editourKing', JSON.stringify(kingData));
+        console.log('Система Царя горы инициализирована');
+    }
+
     resetDailyVotes();
+    updateKingRewards();
     console.log('Инициализация данных завершена');
+}
+
+// Функция для добавления новых пользователей в демо-турниры
+function addNewUserToDemoTournaments(username) {
+    const tournaments = getTournaments();
+    let updated = false;
+    
+    tournaments.forEach(tournament => {
+        if (tournament.status === 'upcoming' && 
+            tournament.participants.length < tournament.maxParticipants &&
+            !tournament.participants.includes(username)) {
+            
+            tournament.participants.push(username);
+            updated = true;
+        }
+    });
+    
+    if (updated) {
+        updateTournaments(tournaments);
+        console.log(`Пользователь ${username} добавлен в демо-турниры`);
+    }
 }
 
 function getUsers() {
@@ -346,6 +418,247 @@ function getVotes() {
 
 function updateVotes(votes) {
     localStorage.setItem('editourVotes', JSON.stringify(votes));
+}
+
+function getKingData() {
+    return JSON.parse(localStorage.getItem('editourKing')) || {
+        currentKing: null,
+        kingSince: null,
+        defenseCount: 0,
+        totalReigns: 0,
+        challenges: []
+    };
+}
+
+function updateKingData(kingData) {
+    localStorage.setItem('editourKing', JSON.stringify(kingData));
+}
+
+// ===== СИСТЕМА ЦАРЯ ГОРЫ =====
+function initInfiniteTournament() {
+    const tournaments = getTournaments();
+    const infiniteTournament = tournaments.find(t => t.id === 'infinite');
+    
+    if (!infiniteTournament) {
+        const kingData = getKingData();
+        const newInfiniteTournament = {
+            id: 'infinite',
+            name: 'Царь горы',
+            description: 'Бесконечный турнир! Побеждай и удерживай трон как можно дольше. Текущий царь получает ежедневную награду.',
+            prize: CONFIG.KING_REWARD,
+            maxParticipants: 1000,
+            participants: kingData.currentKing ? [kingData.currentKing] : [],
+            status: 'infinite',
+            created: new Date().toISOString(),
+            bracket: [],
+            currentRound: 1,
+            image: 'https://via.placeholder.com/400x200/FFD700/000000?text=Царь+Горы',
+            isInfinite: true
+        };
+        
+        tournaments.push(newInfiniteTournament);
+        updateTournaments(tournaments);
+        console.log('Бесконечный турнир "Царь горы" создан');
+    }
+    
+    updateKingUI();
+}
+
+function updateKingUI() {
+    const kingData = getKingData();
+    const currentUser = getCurrentUser();
+    
+    // Обновляем информацию в профиле
+    const kingAvatar = document.getElementById('current-king-avatar');
+    const kingName = document.getElementById('current-king-name');
+    const kingReignTime = document.getElementById('king-reign-time');
+    const kingDefenseCount = document.getElementById('king-defense-count');
+    const challengeBtn = document.getElementById('challenge-king-btn');
+    
+    if (kingData.currentKing) {
+        kingAvatar.textContent = kingData.currentKing.substring(0, 2).toUpperCase();
+        kingName.textContent = kingData.currentKing;
+        
+        const reignTime = new Date() - new Date(kingData.kingSince);
+        const days = Math.floor(reignTime / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((reignTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        kingReignTime.textContent = `Правит ${days}д ${hours}ч`;
+        kingDefenseCount.textContent = `${kingData.defenseCount} защит`;
+        
+        // Активируем кнопку вызова, если пользователь не текущий царь
+        if (currentUser && currentUser.username !== kingData.currentKing) {
+            challengeBtn.disabled = false;
+            challengeBtn.innerHTML = '<i class="fas fa-fist-raised"></i> Бросить вызов';
+        } else {
+            challengeBtn.disabled = true;
+            challengeBtn.innerHTML = '<i class="fas fa-crown"></i> Вы Царь!';
+        }
+    } else {
+        kingAvatar.innerHTML = '<i class="fas fa-crown"></i>';
+        kingName.textContent = 'Трон свободен';
+        kingReignTime.textContent = 'Стань первым Царем горы!';
+        kingDefenseCount.textContent = '0 защит';
+        
+        if (currentUser) {
+            challengeBtn.disabled = false;
+            challengeBtn.innerHTML = '<i class="fas fa-crown"></i> Захватить трон';
+        }
+    }
+}
+
+function updateKingRewards() {
+    const kingData = getKingData();
+    const users = getUsers();
+    
+    if (kingData.currentKing && kingData.kingSince) {
+        const lastRewardDate = localStorage.getItem('lastKingRewardDate');
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (lastRewardDate !== today) {
+            const kingUser = users[kingData.currentKing];
+            if (kingUser) {
+                kingUser.coins += CONFIG.KING_REWARD;
+                kingUser.kingWins = (kingUser.kingWins || 0) + 1;
+                updateUser(kingUser);
+                
+                localStorage.setItem('lastKingRewardDate', today);
+                showNotification(`🎉 ${kingData.currentKing} получает ${CONFIG.KING_REWARD} коинов как Царь горы!`, 'success');
+            }
+        }
+    }
+}
+
+function challengeKing() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showNotification('Войдите в систему для участия!', 'error');
+        return;
+    }
+    
+    const kingData = getKingData();
+    
+    if (kingData.currentKing && currentUser.username === kingData.currentKing) {
+        showNotification('Вы уже Царь горы!', 'info');
+        return;
+    }
+    
+    // Создаем модальное окно для вызова
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h3>Бросить вызов Царю горы</h3>
+            <div class="challenge-info">
+                ${kingData.currentKing ? `
+                    <p>Вы бросаете вызов текущему Царю: <strong>${kingData.currentKing}</strong></p>
+                    <p>Приз: <strong>${CONFIG.KING_REWARD} коинов</strong> ежедневно + слава!</p>
+                ` : `
+                    <p>Трон Царя горы свободен! Станьте первым правителем.</p>
+                    <p>Приз: <strong>${CONFIG.KING_REWARD} коинов</strong> ежедневно!</p>
+                `}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ссылка на ваш эдит</label>
+                <input type="text" class="form-input" id="challenge-edit-link" placeholder="https://tiktok.com/...">
+            </div>
+            <button class="btn btn-warning" id="submit-challenge-btn">
+                <i class="fas fa-fist-raised"></i> Бросить вызов
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.querySelector('.modal-close').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.querySelector('#submit-challenge-btn').addEventListener('click', () => {
+        const editLink = document.getElementById('challenge-edit-link').value;
+        if (!editLink) {
+            showNotification('Введите ссылку на ваш эдит!', 'error');
+            return;
+        }
+        
+        submitKingChallenge(editLink);
+        document.body.removeChild(modal);
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+function submitKingChallenge(editLink) {
+    const currentUser = getCurrentUser();
+    const kingData = getKingData();
+    
+    // Добавляем вызов в историю
+    kingData.challenges.unshift({
+        challenger: currentUser.username,
+        editLink: editLink,
+        date: new Date().toISOString(),
+        status: 'pending'
+    });
+    
+    // Ограничиваем историю последними 10 вызовами
+    kingData.challenges = kingData.challenges.slice(0, 10);
+    
+    updateKingData(kingData);
+    
+    if (kingData.currentKing) {
+        showNotification(`Вызов ${kingData.currentKing} отправлен! Ожидайте голосования.`, 'success');
+    } else {
+        // Если трон свободен, сразу становимся царем
+        becomeKing(currentUser.username);
+    }
+}
+
+function becomeKing(newKing) {
+    const kingData = getKingData();
+    const users = getUsers();
+    const oldKing = kingData.currentKing;
+    
+    // Награждаем старого царя
+    if (oldKing) {
+        const oldKingUser = users[oldKing];
+        if (oldKingUser) {
+            const reignTime = new Date() - new Date(kingData.kingSince);
+            oldKingUser.totalKingTime = (oldKingUser.totalKingTime || 0) + reignTime;
+            updateUser(oldKingUser);
+        }
+    }
+    
+    // Устанавливаем нового царя
+    kingData.currentKing = newKing;
+    kingData.kingSince = new Date().toISOString();
+    kingData.defenseCount = 0;
+    kingData.totalReigns = (kingData.totalReigns || 0) + 1;
+    
+    // Обновляем статистику нового царя
+    const newKingUser = users[newKing];
+    if (newKingUser) {
+        newKingUser.kingWins = (newKingUser.kingWins || 0) + 1;
+        updateUser(newKingUser);
+    }
+    
+    updateKingData(kingData);
+    
+    // Обновляем турнир "Царь горы"
+    const tournaments = getTournaments();
+    const infiniteTournament = tournaments.find(t => t.id === 'infinite');
+    if (infiniteTournament) {
+        infiniteTournament.participants = [newKing];
+        updateTournaments(tournaments);
+    }
+    
+    showNotification(`🎉 ${newKing} становится новым Царем горы!`, 'success');
+    updateKingUI();
+    renderTournaments();
 }
 
 // ===== СИСТЕМА ГОЛОСОВАНИЯ =====
@@ -408,6 +721,62 @@ function getRandomVotingPair() {
         match: randomMatch.match,
         edits: [edit1, edit2]
     };
+}
+
+// Функция для извлечения ID видео TikTok
+function extractTikTokVideoId(url) {
+    const match = url.match(/\/(\d+)(?:\?|$)/);
+    return match ? match[1] : null;
+}
+
+// Функция для открытия модального окна с видео
+function openVideoModal(videoUrl, username) {
+    const modal = document.getElementById('video-modal');
+    const videoContainer = document.getElementById('video-container');
+    const videoTitle = document.getElementById('video-modal-title');
+    const externalLink = document.getElementById('video-external-link');
+    
+    videoTitle.textContent = `Эдит от ${username}`;
+    externalLink.href = videoUrl;
+    
+    // Создаем iframe для видео
+    const isTikTok = videoUrl.includes('tiktok.com');
+    
+    if (isTikTok) {
+        const videoId = extractTikTokVideoId(videoUrl);
+        if (videoId) {
+            videoContainer.innerHTML = `
+                <iframe 
+                    src="https://www.tiktok.com/embed/v2/${videoId}"
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe>
+            `;
+        } else {
+            videoContainer.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--warning); margin-bottom: 1rem;"></i>
+                    <p>Не удалось загрузить видео</p>
+                    <a href="${videoUrl}" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Открыть в TikTok
+                    </a>
+                </div>
+            `;
+        }
+    } else {
+        videoContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <i class="fas fa-play-circle" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
+                <p>Видео недоступно для предпросмотра</p>
+                <a href="${videoUrl}" target="_blank" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt"></i> Открыть видео
+                </a>
+            </div>
+        `;
+    }
+    
+    modal.classList.add('active');
 }
 
 function voteForEdit(editId, tournamentId, matchId) {
@@ -513,6 +882,16 @@ function showNextVotingPair() {
     
     console.log('Показываем пару для голосования:', pairData);
     
+    // Функция для создания превью видео
+    function createVideoPreview(edit, index) {
+        return `
+            <div class="vote-preview" onclick="openVideoModal('${edit.editLink}', '${edit.username}')">
+                <i class="fas fa-play-circle"></i>
+                <div class="video-play-text">Смотреть эдит</div>
+            </div>
+        `;
+    }
+    
     currentPair.innerHTML = `
         <div class="voting-header">
             <h3>🏆 ${pairData.tournament.name}</h3>
@@ -531,9 +910,7 @@ function showNextVotingPair() {
         </div>
         <div class="vote-option" data-id="${pairData.edits[0].id}">
             <div class="vote-user">${pairData.edits[0].username}</div>
-            <div class="vote-preview">
-                <i class="fas fa-play-circle"></i>
-            </div>
+            ${createVideoPreview(pairData.edits[0], 0)}
             <div class="vote-stats">
                 <i class="fas fa-fire"></i> ${pairData.edits[0].votes || 0} голосов
             </div>
@@ -543,9 +920,7 @@ function showNextVotingPair() {
         </div>
         <div class="vote-option" data-id="${pairData.edits[1].id}">
             <div class="vote-user">${pairData.edits[1].username}</div>
-            <div class="vote-preview">
-                <i class="fas fa-play-circle"></i>
-            </div>
+            ${createVideoPreview(pairData.edits[1], 1)}
             <div class="vote-stats">
                 <i class="fas fa-fire"></i> ${pairData.edits[1].votes || 0} голосов
             </div>
@@ -736,7 +1111,7 @@ function joinTournament(tournamentId, editLink) {
     renderTournaments();
 }
 
-function createTournament(name, description, prize, maxParticipants) {
+function createTournament(name, description, prize, maxParticipants, imageUrl = null) {
     console.log('Создание нового турнира:', name);
     const tournaments = getTournaments();
     const newTournament = {
@@ -750,7 +1125,8 @@ function createTournament(name, description, prize, maxParticipants) {
         created: new Date().toISOString(),
         startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
         bracket: [],
-        currentRound: 1
+        currentRound: 1,
+        image: imageUrl || getDefaultTournamentImage()
     };
     
     tournaments.push(newTournament);
@@ -758,6 +1134,11 @@ function createTournament(name, description, prize, maxParticipants) {
     showNotification('Турнир успешно создан!', 'success');
     renderTournaments();
     renderAdminTournaments();
+}
+
+// Функция для получения случайной обложки по умолчанию
+function getDefaultTournamentImage() {
+    return CONFIG.DEFAULT_TOURNAMENT_IMAGES[Math.floor(Math.random() * CONFIG.DEFAULT_TOURNAMENT_IMAGES.length)];
 }
 
 // ===== ОБНОВЛЕНИЕ ИНТЕРФЕЙСА =====
@@ -770,6 +1151,7 @@ function updateUI() {
         document.getElementById('user-coins').textContent = user.coins;
         
         renderProfile();
+        updateKingUI();
     } else {
         document.getElementById('user-avatar').innerHTML = '<i class="fas fa-user"></i>';
         document.getElementById('user-coins').textContent = '0';
@@ -823,11 +1205,13 @@ function renderTournaments() {
     const filteredTournaments = tournaments.filter(tournament => {
         const user = getCurrentUser();
         switch(currentFilter) {
-            case 'active': return tournament.status === 'active';
+            case 'active': return tournament.status === 'active' && !tournament.isInfinite;
             case 'upcoming': return tournament.status === 'upcoming';
             case 'completed': return tournament.status === 'completed';
             case 'my': 
                 return user && tournament.participants.includes(user.username);
+            case 'infinite':
+                return tournament.isInfinite;
             default: return true;
         }
     });
@@ -847,21 +1231,25 @@ function renderTournaments() {
     
     filteredTournaments.forEach(tournament => {
         const user = getCurrentUser();
+        const isInfinite = tournament.isInfinite;
         const isParticipant = user && tournament.participants.includes(user.username);
         const canJoin = tournament.status === 'active' && 
                        user &&
                        !isParticipant && 
-                       tournament.participants.length < tournament.maxParticipants;
+                       tournament.participants.length < tournament.maxParticipants &&
+                       !isInfinite;
         
         const tournamentElement = document.createElement('div');
-        tournamentElement.className = 'tournament-card';
+        tournamentElement.className = `tournament-card ${isInfinite ? 'infinite' : ''}`;
         tournamentElement.setAttribute('data-id', tournament.id);
         
         tournamentElement.innerHTML = `
+            ${tournament.image ? `<img src="${tournament.image}" alt="${tournament.name}" class="tournament-image">` : ''}
             <div class="tournament-header">
                 <div>
                     <h3 class="tournament-title">${tournament.name}</h3>
-                    <span class="tournament-status ${tournament.status}">${
+                    <span class="tournament-status ${tournament.status} ${isInfinite ? 'infinite' : ''}">${
+                        isInfinite ? 'Царь горы' :
                         tournament.status === 'active' ? 'Активный' :
                         tournament.status === 'upcoming' ? 'Скоро начнется' : 'Завершен'
                     }</span>
@@ -874,6 +1262,14 @@ function renderTournaments() {
                 <span><i class="fas fa-users"></i> ${tournament.participants.length}/${tournament.maxParticipants} участников</span>
                 <span><i class="fas fa-coins"></i> ${tournament.prize} коинов</span>
             </div>
+            
+            ${isInfinite ? `
+                <div class="king-tournament-info">
+                    <div class="current-king">
+                        <i class="fas fa-crown"></i> Текущий царь: ${tournament.participants[0] || 'Отсутствует'}
+                    </div>
+                </div>
+            ` : ''}
             
             ${tournament.bracket && tournament.bracket.length > 0 ? `
                 <div class="tournament-bracket-preview">
@@ -893,6 +1289,8 @@ function renderTournaments() {
             <div style="margin-top: 1.5rem;">
                 ${!user ? 
                     '<button class="btn btn-outline" style="width: 100%;" disabled>Войдите для участия</button>' :
+                    isInfinite ?
+                    '<button class="btn btn-warning" style="width: 100%;" id="challenge-king-main-btn">Бросить вызов</button>' :
                     isParticipant ? 
                     '<div class="participant-badge">✅ Вы участвуете</div>' :
                     canJoin ?
@@ -906,6 +1304,10 @@ function renderTournaments() {
             tournamentElement.querySelector('.join-tournament-btn').addEventListener('click', () => {
                 openTournamentModal(tournament);
             });
+        }
+        
+        if (isInfinite) {
+            tournamentElement.querySelector('#challenge-king-main-btn').addEventListener('click', challengeKing);
         }
         
         container.appendChild(tournamentElement);
@@ -924,6 +1326,10 @@ function renderTop() {
         switch(currentFilter) {
             case 'coins': return b.coins - a.coins;
             case 'level': return (b.level || 1) - (a.level || 1);
+            case 'king': 
+                const aKingScore = (a.kingWins || 0) * 1000 + (a.totalKingTime || 0);
+                const bKingScore = (b.kingWins || 0) * 1000 + (b.totalKingTime || 0);
+                return bKingScore - aKingScore;
             case 'wins': 
             default: return (b.wins || 0) - (a.wins || 0);
         }
@@ -941,7 +1347,8 @@ function renderTop() {
         
         const score = currentFilter === 'wins' ? user.wins || 0 :
                      currentFilter === 'coins' ? user.coins :
-                     user.level || 1;
+                     currentFilter === 'level' ? user.level || 1 :
+                     currentFilter === 'king' ? (user.kingWins || 0) + ' побед' : 0;
         
         playerElement.innerHTML = `
             <div class="player-rank">${index + 1}</div>
@@ -952,6 +1359,7 @@ function renderTop() {
                     <span><i class="fas fa-trophy"></i> ${user.wins || 0} побед</span>
                     <span><i class="fas fa-coins"></i> ${user.coins} коинов</span>
                     <span><i class="fas fa-level-up-alt"></i> Ур. ${user.level || 1}</span>
+                    ${currentFilter === 'king' ? `<span><i class="fas fa-crown"></i> ${user.kingWins || 0} раз царем</span>` : ''}
                 </div>
             </div>
             <div class="player-score">${score}</div>
@@ -972,8 +1380,13 @@ function renderTop() {
 // ===== АДМИН СИСТЕМА =====
 function checkAdminAccess() {
     const user = getCurrentUser();
-    const hasAccess = user && (localStorage.getItem('editourAdminAccess') === 'true' || CONFIG.ADMINS.includes(user.username));
-    console.log('Проверка доступа к админке:', hasAccess, 'для пользователя:', user?.username);
+    if (!user) return false;
+    
+    // Проверяем пароль из localStorage И наличие пользователя в списке админов
+    const hasAccess = localStorage.getItem('editourAdminAccess') === 'true' && 
+                     CONFIG.ADMINS.includes(user.username);
+    
+    console.log('Проверка доступа к админке:', hasAccess, 'для пользователя:', user.username);
     return hasAccess;
 }
 
@@ -1008,6 +1421,7 @@ function renderAdminContent() {
     renderAdminSubmissions();
     renderAdminTournaments();
     renderAdminUsers();
+    renderAdminKing();
 }
 
 function renderAdminSubmissions() {
@@ -1113,7 +1527,8 @@ function renderAdminTournaments() {
             <div>
                 <h4>${tournament.name}</h4>
                 <p>${tournament.description}</p>
-                <p>Статус: <span class="tournament-status ${tournament.status}">${
+                <p>Статус: <span class="tournament-status ${tournament.status} ${tournament.isInfinite ? 'infinite' : ''}">${
+                    tournament.isInfinite ? 'Царь горы' :
                     tournament.status === 'active' ? 'Активный' :
                     tournament.status === 'upcoming' ? 'Скоро начнется' : 'Завершен'
                 }</span></p>
@@ -1124,10 +1539,12 @@ function renderAdminTournaments() {
                 ` : ''}
             </div>
             <div class="submission-actions">
-                <button class="btn btn-primary start-tournament-btn" data-id="${tournament.id}" 
-                    ${tournament.status !== 'upcoming' ? 'disabled' : ''}>
-                    <i class="fas fa-play"></i> Запустить
-                </button>
+                ${!tournament.isInfinite ? `
+                    <button class="btn btn-primary start-tournament-btn" data-id="${tournament.id}" 
+                        ${tournament.status !== 'upcoming' ? 'disabled' : ''}>
+                        <i class="fas fa-play"></i> Запустить
+                    </button>
+                ` : ''}
                 <button class="btn btn-danger delete-tournament-btn" data-id="${tournament.id}">
                     <i class="fas fa-trash"></i> Удалить
                 </button>
@@ -1145,7 +1562,7 @@ function renderAdminTournaments() {
     
     container.querySelectorAll('.delete-tournament-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const tournamentId = parseInt(this.getAttribute('data-id'));
+            const tournamentId = this.getAttribute('data-id');
             console.log('Удаление турнира:', tournamentId);
             deleteTournament(tournamentId);
         });
@@ -1171,6 +1588,7 @@ function renderAdminUsers() {
                 <p>Турниров: ${user.tournamentsPlayed || 0} | Голосов: ${user.totalVotes || 0}</p>
                 <p>Заработано голосами: ${user.votesEarned || 0} коинов</p>
                 <p>Дневные голоса: ${user.dailyVotes || 0}/${CONFIG.MAX_DAILY_VOTES}</p>
+                <p>Побед царем: ${user.kingWins || 0} | Время правления: ${formatTime(user.totalKingTime || 0)}</p>
                 <p class="user-id">ID: ${user.username}</p>
             </div>
             <div class="user-actions">
@@ -1219,21 +1637,66 @@ function renderAdminUsers() {
     });
 }
 
+function renderAdminKing() {
+    console.log('Рендер управления Царем горы...');
+    const kingData = getKingData();
+    const container = document.getElementById('king-stats-info');
+    
+    container.innerHTML = `
+        <div class="king-stats">
+            <p><strong>Текущий царь:</strong> ${kingData.currentKing || 'Отсутствует'}</p>
+            <p><strong>Правит с:</strong> ${kingData.kingSince ? new Date(kingData.kingSince).toLocaleString('ru-RU') : 'Нет'}</p>
+            <p><strong>Успешных защит:</strong> ${kingData.defenseCount}</p>
+            <p><strong>Всего правлений:</strong> ${kingData.totalReigns}</p>
+            <p><strong>Последние вызовы:</strong></p>
+            <div class="challenges-list">
+                ${kingData.challenges.slice(0, 5).map(challenge => `
+                    <div class="challenge-item">
+                        <span>${challenge.challenger}</span>
+                        <span>${new Date(challenge.date).toLocaleDateString('ru-RU')}</span>
+                        <span class="status ${challenge.status}">${challenge.status}</span>
+                    </div>
+                `).join('')}
+                ${kingData.challenges.length === 0 ? '<p>Нет вызовов</p>' : ''}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('current-king-input').value = kingData.currentKing || '';
+}
+
+// Вспомогательная функция для форматирования времени
+function formatTime(milliseconds) {
+    const days = Math.floor(milliseconds / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((milliseconds % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days}д ${hours}ч`;
+}
+
 // Админ функции
 function startTournament(tournamentId) {
     console.log('Запуск турнира:', tournamentId);
     const tournaments = getTournaments();
     const tournament = tournaments.find(t => t.id === tournamentId);
-    if (tournament && tournament.participants.length >= 2) {
+    
+    if (tournament) {
+        if (tournament.participants.length < 2) {
+            if (!confirm('В турнире меньше 2 участников. Вы уверены, что хотите запустить турнир?')) {
+                return;
+            }
+        }
+        
         tournament.status = 'active';
         tournament.bracket = generateTournamentBracket(tournament.participants);
         tournament.currentRound = 1;
+        tournament.startDate = new Date().toISOString();
+        tournament.endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        
         updateTournaments(tournaments);
         showNotification('Турнир запущен! Сетка сгенерирована.', 'success');
         renderAdminTournaments();
         renderTournaments();
     } else {
-        showNotification('Для старта турнира нужно минимум 2 участника!', 'error');
+        showNotification('Турнир не найден!', 'error');
     }
 }
 
@@ -1242,7 +1705,7 @@ function deleteTournament(tournamentId) {
     if (!confirm('Вы уверены, что хотите удалить турнир?')) return;
     
     const tournaments = getTournaments();
-    const updatedTournaments = tournaments.filter(t => t.id !== tournamentId);
+    const updatedTournaments = tournaments.filter(t => t.id != tournamentId);
     updateTournaments(updatedTournaments);
     showNotification('Турнир удален!', 'success');
     renderAdminTournaments();
@@ -1277,6 +1740,8 @@ function resetUserStats(username) {
         user.dailyVotes = 0;
         user.level = 1;
         user.exp = 0;
+        user.kingWins = 0;
+        user.totalKingTime = 0;
         updateUser(user);
         showNotification('Статистика пользователя сброшена!', 'success');
         renderAdminUsers();
@@ -1381,16 +1846,18 @@ function setupEventListeners() {
         const description = document.getElementById('tournament-description').value;
         const prize = document.getElementById('tournament-prize').value;
         const participants = document.getElementById('tournament-participants').value;
+        const imageUrl = document.getElementById('tournament-image').value;
 
         if (name && description && prize) {
-            createTournament(name, description, prize, participants);
+            createTournament(name, description, prize, participants, imageUrl || null);
             document.getElementById('create-tournament-modal').classList.remove('active');
             
             document.getElementById('tournament-name').value = '';
             document.getElementById('tournament-description').value = '';
             document.getElementById('tournament-prize').value = '';
+            document.getElementById('tournament-image').value = '';
         } else {
-            showNotification('Заполните все поля!', 'error');
+            showNotification('Заполните все обязательные поля!', 'error');
         }
     });
 
@@ -1431,6 +1898,47 @@ function setupEventListeners() {
         });
     });
     
+    // Обработчики для Царя горы
+    document.getElementById('challenge-king-btn').addEventListener('click', challengeKing);
+    
+    document.getElementById('set-king-btn').addEventListener('click', function() {
+        const newKing = document.getElementById('current-king-input').value;
+        if (newKing) {
+            becomeKing(newKing);
+            renderAdminKing();
+        } else {
+            showNotification('Введите имя пользователя!', 'error');
+        }
+    });
+    
+    document.getElementById('reset-king-btn').addEventListener('click', function() {
+        if (confirm('Вы уверены, что хотите сбросить трон Царя горы?')) {
+            const kingData = getKingData();
+            kingData.currentKing = null;
+            kingData.kingSince = null;
+            kingData.defenseCount = 0;
+            updateKingData(kingData);
+            
+            // Обновляем турнир "Царь горы"
+            const tournaments = getTournaments();
+            const infiniteTournament = tournaments.find(t => t.id === 'infinite');
+            if (infiniteTournament) {
+                infiniteTournament.participants = [];
+                updateTournaments(tournaments);
+            }
+            
+            showNotification('Трон Царя горы сброшен!', 'success');
+            updateKingUI();
+            renderAdminKing();
+            renderTournaments();
+        }
+    });
+    
+    // Обработчики для модального окна видео
+    document.getElementById('video-modal-close').addEventListener('click', function() {
+        document.getElementById('video-modal').classList.remove('active');
+    });
+    
     console.log('Обработчики событий настроены');
 }
 
@@ -1460,6 +1968,7 @@ function showPage(pageId) {
     switch(pageId) {
         case 'profile':
             renderProfile();
+            updateKingUI();
             break;
         case 'tournaments':
             renderTournaments();
@@ -1532,6 +2041,7 @@ window.showData = function() {
     console.log('Submissions:', getSubmissions());
     console.log('Approved Edits:', getApprovedEdits());
     console.log('Votes:', getVotes());
+    console.log('King Data:', getKingData());
     console.log('Current User:', getCurrentUser());
 };
 
@@ -1542,8 +2052,10 @@ window.resetAllData = function() {
         localStorage.removeItem('editourSubmissions');
         localStorage.removeItem('editourApprovedEdits');
         localStorage.removeItem('editourVotes');
+        localStorage.removeItem('editourKing');
         localStorage.removeItem('currentUser');
         localStorage.removeItem('editourAdminAccess');
+        localStorage.removeItem('lastKingRewardDate');
         
         showNotification('Все данные сброшены!', 'success');
         setTimeout(() => {
