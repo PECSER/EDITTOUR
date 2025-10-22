@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -76,12 +76,20 @@
                         <i class="fas fa-level-up-alt"></i>
                         <span>Система уровней</span>
                     </div>
+                    <div class="feature">
+                        <i class="fas fa-crown"></i>
+                        <span>Царь горы</span>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Профиль -->
         <section id="profile" class="page">
+            <div class="page-header">
+                <h2><i class="fas fa-user"></i> Профиль</h2>
+            </div>
+
             <div class="profile-header">
                 <div class="profile-main">
                     <div class="profile-avatar" id="profile-avatar">
@@ -152,6 +160,29 @@
                     </div>
                 </div>
 
+                <!-- Бесконечный турнир "Царь горы" -->
+                <div class="infinite-tournament-section">
+                    <h3><i class="fas fa-crown"></i> Царь горы</h3>
+                    <div class="king-of-the-hill-card">
+                        <div class="king-info">
+                            <div class="king-avatar" id="current-king-avatar">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <div class="king-details">
+                                <h4 id="current-king-name">Трон свободен</h4>
+                                <p id="king-reign-time">Стань первым Царем горы!</p>
+                                <div class="king-stats">
+                                    <span id="king-defense-count">0 защит</span>
+                                    <span id="king-reward">Ежедневная награда: 50 коинов</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-warning" id="challenge-king-btn" disabled>
+                            <i class="fas fa-fist-raised"></i> Бросить вызов
+                        </button>
+                    </div>
+                </div>
+
                 <div class="level-system-info">
                     <h3><i class="fas fa-level-up-alt"></i> Система уровней</h3>
                     <div class="level-info-card">
@@ -197,6 +228,7 @@
                 <button class="tournament-filter" data-filter="upcoming">Скоро</button>
                 <button class="tournament-filter" data-filter="completed">Завершенные</button>
                 <button class="tournament-filter" data-filter="my">Мои турниры</button>
+                <button class="tournament-filter" data-filter="infinite">Царь горы</button>
             </div>
 
             <div class="tournaments-grid" id="tournaments-grid">
@@ -261,6 +293,9 @@
                 <button class="top-filter" data-filter="level">
                     <i class="fas fa-level-up-alt"></i> По уровню
                 </button>
+                <button class="top-filter" data-filter="king">
+                    <i class="fas fa-crown"></i> Цари горы
+                </button>
             </div>
 
             <div class="top-players" id="top-players">
@@ -304,6 +339,9 @@
                     <button class="admin-tab" data-tab="users">
                         <i class="fas fa-users"></i> Пользователи
                     </button>
+                    <button class="admin-tab" data-tab="king">
+                        <i class="fas fa-crown"></i> Царь горы
+                    </button>
                 </div>
 
                 <div class="admin-content active" id="submissions-tab">
@@ -327,6 +365,28 @@
                     <h3>Управление пользователями</h3>
                     <div id="admin-users">
                         <!-- Пользователи будут заполнены через JS -->
+                    </div>
+                </div>
+
+                <div class="admin-content" id="king-tab">
+                    <h3>Управление Царем горы</h3>
+                    <div class="king-admin-panel">
+                        <div class="form-group">
+                            <label>Текущий Царь горы</label>
+                            <input type="text" class="form-input" id="current-king-input" placeholder="Имя пользователя">
+                        </div>
+                        <button class="btn btn-warning" id="set-king-btn">
+                            <i class="fas fa-crown"></i> Назначить Царя
+                        </button>
+                        <button class="btn btn-danger" id="reset-king-btn">
+                            <i class="fas fa-times"></i> Сбросить трон
+                        </button>
+                        <div class="king-stats-admin">
+                            <h4>Статистика Царя горы</h4>
+                            <div id="king-stats-info">
+                                <!-- Статистика будет заполнена через JS -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -392,8 +452,52 @@
                     <option value="32">32 участника</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label class="form-label">Обложка турнира (URL)</label>
+                <input type="text" class="form-input" id="tournament-image" placeholder="https://...">
+                <small style="color: var(--text-secondary);">Оставьте пустым для случайной обложки</small>
+            </div>
             <button class="btn btn-primary" id="create-tournament-submit">
                 <i class="fas fa-plus"></i> Создать турнир
+            </button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для просмотра видео -->
+    <div class="modal" id="video-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="video-modal-close">&times;</button>
+            <h3 class="modal-title" id="video-modal-title">Просмотр эдита</h3>
+            <div class="video-container" id="video-container">
+                <!-- Видео будет вставлено через JS -->
+            </div>
+            <div style="margin-top: 1rem; text-align: center;">
+                <a href="#" target="_blank" class="btn btn-outline" id="video-external-link">
+                    <i class="fas fa-external-link-alt"></i> Открыть в новом окне
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для загрузки обложки -->
+    <div class="modal" id="upload-image-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="upload-image-modal-close">&times;</button>
+            <h3 class="modal-title">Загрузка обложки</h3>
+            <div class="form-group">
+                <label class="form-label">URL изображения</label>
+                <input type="text" class="form-input" id="image-url-input" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Или загрузите файл</label>
+                <input type="file" class="form-input" id="image-file-input" accept="image/*">
+                <small style="color: var(--text-secondary);">Поддерживаются JPG, PNG, GIF (макс. 5MB)</small>
+            </div>
+            <div class="image-preview" id="image-preview">
+                <img src="" alt="Предпросмотр" style="max-width: 100%; border-radius: 8px; display: none;">
+            </div>
+            <button class="btn btn-primary" id="confirm-image-upload">
+                <i class="fas fa-check"></i> Использовать изображение
             </button>
         </div>
     </div>
