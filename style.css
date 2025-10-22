@@ -1,4 +1,4 @@
-﻿/* ===== ОСНОВНЫЕ СТИЛИ ===== */
+/* ===== ОСНОВНЫЕ СТИЛИ ===== */
 * {
     margin: 0;
     padding: 0;
@@ -20,6 +20,9 @@
     --success: #00cc66;
     --danger: #ff3366;
     --warning: #ffcc00;
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
 }
 
 body {
@@ -64,7 +67,7 @@ body {
 
 /* ===== НАВИГАЦИЯ ===== */
 nav {
-    background-color: rgba(10, 10, 15, 0.9);
+    background-color: rgba(10, 10, 15, 0.95);
     backdrop-filter: blur(10px);
     padding: 1rem 2rem;
     display: flex;
@@ -454,6 +457,52 @@ main {
     font-size: 0.9rem;
 }
 
+/* Царь горы в профиле */
+.king-of-the-hill-card {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), var(--bg-card));
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.king-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.king-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #ffed4e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    border: 2px solid var(--gold);
+    color: var(--bg);
+}
+
+.king-details h4 {
+    color: var(--gold);
+    font-size: 1.3rem;
+    margin-bottom: 0.3rem;
+}
+
+.king-stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
 /* Система уровней */
 .level-system-info {
     margin-top: 2rem;
@@ -537,12 +586,42 @@ main {
     border: 1px solid var(--border);
     transition: all 0.3s ease;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.tournament-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.tournament-card.infinite::before {
+    background: linear-gradient(90deg, var(--gold), #ffed4e);
 }
 
 .tournament-card:hover {
     border-color: var(--primary);
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(138, 43, 226, 0.3);
+}
+
+.tournament-card.infinite:hover {
+    border-color: var(--gold);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+}
+
+.tournament-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, var(--primary), var(--accent));
 }
 
 .tournament-header {
@@ -556,6 +635,10 @@ main {
     font-size: 1.3rem;
     color: var(--accent);
     margin-bottom: 0.5rem;
+}
+
+.tournament-card.infinite .tournament-title {
+    color: var(--gold);
 }
 
 .tournament-status {
@@ -578,6 +661,11 @@ main {
 .tournament-status.completed {
     background: var(--text-secondary);
     color: white;
+}
+
+.tournament-status.infinite {
+    background: var(--gold);
+    color: var(--bg);
 }
 
 .tournament-info {
@@ -850,11 +938,35 @@ main {
     margin-bottom: 1rem;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.vote-preview:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
 }
 
 .vote-preview i {
     font-size: 3rem;
     color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.vote-preview:hover i {
+    color: var(--accent);
+    transform: scale(1.2);
+}
+
+.video-play-text {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 .vote-stats {
@@ -878,6 +990,20 @@ main {
 .complete-content h3 {
     margin-bottom: 1rem;
     color: var(--accent);
+}
+
+/* Видео контейнер в модальном окне */
+.video-container {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.video-container iframe {
+    width: 100%;
+    height: 500px;
+    border-radius: 8px;
+    border: none;
 }
 
 /* ===== ТОП ИГРОКОВ ===== */
@@ -928,19 +1054,19 @@ main {
 }
 
 .top-player.gold {
-    border-color: gold;
+    border-color: var(--gold);
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
     background: linear-gradient(90deg, rgba(255,215,0,0.1), var(--bg-card));
 }
 
 .top-player.silver {
-    border-color: silver;
+    border-color: var(--silver);
     box-shadow: 0 0 15px rgba(192, 192, 192, 0.3);
     background: linear-gradient(90deg, rgba(192,192,192,0.1), var(--bg-card));
 }
 
 .top-player.bronze {
-    border-color: #cd7f32;
+    border-color: var(--bronze);
     box-shadow: 0 0 15px rgba(205, 127, 50, 0.3);
     background: linear-gradient(90deg, rgba(205,127,50,0.1), var(--bg-card));
 }
@@ -957,17 +1083,17 @@ main {
 }
 
 .gold .player-rank {
-    background-color: gold;
+    background-color: var(--gold);
     color: var(--bg);
 }
 
 .silver .player-rank {
-    background-color: silver;
+    background-color: var(--silver);
     color: var(--bg);
 }
 
 .bronze .player-rank {
-    background-color: #cd7f32;
+    background-color: var(--bronze);
     color: var(--bg);
 }
 
@@ -1098,6 +1224,19 @@ main {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+}
+
+.king-admin-panel {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.king-stats-admin {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
 }
 
 /* ===== МОДАЛЬНЫЕ ОКНА ===== */
@@ -1378,6 +1517,16 @@ main {
         text-align: center;
         gap: 1rem;
     }
+
+    .king-of-the-hill-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .king-info {
+        flex-direction: column;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1396,6 +1545,14 @@ main {
 
     .bracket-rounds {
         grid-template-columns: 1fr;
+    }
+
+    .vote-option {
+        padding: 1.5rem;
+    }
+
+    .video-container iframe {
+        height: 300px;
     }
 }
 
@@ -1455,6 +1612,11 @@ main {
     color: white;
 }
 
+.status.infinite {
+    background: var(--gold) !important;
+    color: var(--bg);
+}
+
 /* Анимации */
 @keyframes slideIn {
     from {
@@ -1495,4 +1657,20 @@ main {
     .vote-option {
         padding: 1.5rem;
     }
+}
+
+/* Анимация короны */
+@keyframes crownGlow {
+    0%, 100% { 
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        transform: scale(1.05);
+    }
+}
+
+.king-avatar {
+    animation: crownGlow 2s infinite;
 }
